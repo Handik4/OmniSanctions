@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-canvas text-navy font-sans antialiased;
+    font-feature-settings: "cv11", "ss01", "tnum";
+  }
+  ::selection { background: #bfdbfe; }
+}
+
+@layer components {
+  .card { @apply bg-white border border-line rounded-xl shadow-card; }
+  .label { @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500; }
+  .chip-mono { @apply font-mono text-[12px] leading-none bg-slate-100 border border-line text-slate-700 rounded-md px-2 py-1; }
+  .btn { @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 h-10 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-inst focus-visible:ring-offset-2; }
+  .btn-primary { @apply btn bg-navy text-white hover:bg-slate-800; }
+  .btn-blue { @apply btn bg-inst text-white hover:bg-blue-700; }
+  .btn-ghost { @apply btn bg-white border border-line text-navy hover:bg-slate-50; }
+  .th { @apply text-left label px-4 py-3 font-semibold bg-slate-50/70 border-b border-line whitespace-nowrap; }
+  .td { @apply px-4 py-3.5 align-middle text-sm; }
+}
+
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(37,99,235,.35);} 100% { box-shadow: 0 0 0 10px rgba(37,99,235,0);} }
+.pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
+@keyframes stripe { from { background-position: 0 0; } to { background-position: 28px 0; } }
+.progress-stripes {
+  background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.35) 0 8px, transparent 8px 14px);
+  background-size: 28px 100%;
+  animation: stripe 0.9s linear infinite;
+}
+
+/* Certificate / print */
+@media print {
+  body { background: #fff !important; }
+  body > #root > *:not(.print-root) { display: none !important; }
+  .print-root { position: static !important; inset: auto !important; background: #fff !important; padding: 0 !important; overflow: visible !important; }
+  .print-root .no-print { display: none !important; }
+  .print-sheet { box-shadow: none !important; border: 0 !important; max-height: none !important; overflow: visible !important; }
+}

@@ -1,0 +1,13 @@
+{
+  "address": "0x28c6c06298d514db089934071355e5743bf21d60",
+  "mixer_hops": 0,
+  "sanctioned_counterparties": 0,
+  "attributed_to_sanctioned_cluster": false,
+  "cluster_label": "",
+  "labels": [
+    "centralized-exchange",
+    "high-volume-deposit",
+    "kyc-custodian"
+  ],
+  "counterparty_notes": "Institutional exchange deposit address; counterparties are retail depositors and exchange-internal sweeps. No mixer or sanctioned exposure observed."
+}

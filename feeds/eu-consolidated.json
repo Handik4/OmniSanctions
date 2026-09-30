@@ -1,0 +1,24 @@
+{
+  "entries": [
+    {
+      "addresses": [
+        "0xe0e0e0000000000000000000000000000000e0e0"
+      ],
+      "name": "Garantex Europe OU",
+      "aliases": [
+        "Garantex"
+      ],
+      "program": "EU-RUS"
+    },
+    {
+      "addresses": [
+        "0xe0e1e1000000000000000000000000000000e0e1"
+      ],
+      "name": "Lazarus Group",
+      "aliases": [
+        "Lazarus"
+      ],
+      "program": "EU-DPRK"
+    }
+  ]
+}

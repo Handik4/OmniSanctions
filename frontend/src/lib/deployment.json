@@ -1,0 +1,92 @@
+{
+  "network": "studio-next",
+  "chain_id": 61997,
+  "rpc_url": "https://studio-next.genlayer.com/api",
+  "contract_address": "0x3FE369576cF628BB441A40b1243f0E11ce0F381E",
+  "explorer_url": "https://explorer-studio-next.genlayer.com/address/0x3FE369576cF628BB441A40b1243f0E11ce0F381E",
+  "deployer": "0xEae4d2a2DCed4c6DE9C23840373D5b13e4BD6987",
+  "deploy_tx": "0x3bdaa3787f7c0ea46e00fcdef52196df18966d48d877369499a724b7faf47092",
+  "deploy_tx_url": "https://explorer-studio-next.genlayer.com/tx/0x3bdaa3787f7c0ea46e00fcdef52196df18966d48d877369499a724b7faf47092",
+  "source": "contracts/omni_sanctions.py",
+  "source_sha256": "4f6607e8da104b6d57f737c0bbcfadf36c4032ed7d5cd93b32e5f78d1ca778b1",
+  "feeds_base_url": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds",
+  "seed": {
+    "registries": [
+      {
+        "name": "US OFAC Specially Designated Nationals",
+        "feed": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds/ofac-sdn.json",
+        "tx": "0x45a2a451172add3a41c3de9f3240fb6263e92809e4add3d47c72968cb33c136d"
+      },
+      {
+        "name": "EU Consolidated Financial Sanctions",
+        "feed": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds/eu-consolidated.json",
+        "tx": "0xd1e86d0d8aaa582bb38e29c33082ce7f331be112e53241e63e7bcedd18e5105a"
+      },
+      {
+        "name": "UN Security Council ISIL/Al-Qaida",
+        "feed": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds/un-securitycouncil.json",
+        "tx": "0x57f8dabab81755a3037476dbdd63ac38ab13501616fa69bfffb197d09deca167"
+      }
+    ],
+    "cases": [
+      {
+        "case_id": 1,
+        "label": "Sanctioned Lazarus / Ronin exploit cluster",
+        "address": "0x098B716B8Aaf21512996dC57EB0615e2383E2f96",
+        "alias": "Lazarus Group",
+        "expected_tier": "TIER_3_SANCTIONED",
+        "request_tx": "0x27069afa7b1ef2d45d0a565dd1408fcd20c8a2e29463a7bb42d4ca89c42c5ae6",
+        "resolve_tx": null
+      },
+      {
+        "case_id": 2,
+        "label": "High-volume institutional exchange deposit",
+        "address": "0x28C6c06298d514Db089934071355E5743bf21d60",
+        "alias": "Binance 14",
+        "expected_tier": "TIER_1_CLEAN",
+        "request_tx": "0xc45d320e1a95f48cfd87a1c5c848b50fdecbd6efaf8274d2f6cdfc49effbfe78",
+        "resolve_tx": null
+      },
+      {
+        "case_id": 3,
+        "label": "DeFi vault, 1-hop Tornado Cash exposure",
+        "address": "0x5a1e5f00d5a1e5f00d5a1e5f00d5a1e5f00d5a1e",
+        "alias": "Yield Vault v2",
+        "expected_tier": "TIER_2_ELEVATED",
+        "request_tx": "0x84469d1e382d3d647898ee5da9f50eb98806d4f2425255c03f06cb14c44d2293",
+        "resolve_tx": null
+      },
+      {
+        "case_id": 4,
+        "label": "Live case awaiting steward evaluation",
+        "address": "0x9c0ffee9c0ffee9c0ffee9c0ffee9c0ffee9c0ff",
+        "alias": "Lazarus Grp",
+        "expected_tier": null,
+        "request_tx": "0x78fae768a9f53e44c89dcfeeebf25b5134a3f48a445c4cf1d683fda1df722dcf",
+        "resolve_tx": null
+      }
+    ],
+    "telemetry_tx": "0x9b2ab04551b7674f60c3924427712d3640ea3cabf6e7de144ff53d9772c1e899",
+    "subscriber_tx": "0x77a3784fd52a04abf9b0960a71961b212307b1e0ae896e3e19ad5bd8953d202d"
+  },
+  "deployed_at": 1790781489,
+  "metrics": {
+    "active_watchlists": 3,
+    "clean": 0,
+    "elevated": 0,
+    "escrow": "80000000000000000",
+    "governor": "0xeae4d2a2dced4c6de9c23840373d5b13e4bd6987",
+    "inconclusive": 0,
+    "mean_latency_seconds": 0,
+    "refunds_owed": "0",
+    "sanctioned_isolated": 0,
+    "screening_fee": "20000000000000000",
+    "solvent": true,
+    "subscribers": 1,
+    "telemetry_url": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds/telemetry/{address}.json",
+    "total_cases": 4,
+    "total_screened": 0,
+    "treasury": "0",
+    "validator_pool": "0"
+  }
+}

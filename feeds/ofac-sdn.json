@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "address": "0x098B716B8Aaf21512996dC57EB0615e2383E2f96",
+      "name": "Lazarus Group",
+      "aliases": [
+        "APT38",
+        "Hidden Cobra",
+        "Bluenoroff"
+      ],
+      "program": "DPRK3"
+    },
+    {
+      "address": "0xb1e0d0000000000000000000000000000000b1e0",
+      "name": "Blender.io",
+      "aliases": [
+        "Blender"
+      ],
+      "program": "CYBER2"
+    },
+    {
+      "address": "0x51d0b0000000000000000000000000000000b1d0",
+      "name": "Sinbad.io",
+      "aliases": [
+        "Sindbad"
+      ],
+      "program": "CYBER2"
+    }
+  ]
+}

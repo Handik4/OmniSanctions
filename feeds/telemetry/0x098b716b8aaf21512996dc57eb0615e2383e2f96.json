@@ -1,0 +1,12 @@
+{
+  "address": "0x098b716b8aaf21512996dc57eb0615e2383e2f96",
+  "mixer_hops": 0,
+  "sanctioned_counterparties": 12,
+  "attributed_to_sanctioned_cluster": true,
+  "cluster_label": "Lazarus Group / Ronin bridge exploiter",
+  "labels": [
+    "hack-proceeds",
+    "sanctioned"
+  ],
+  "counterparty_notes": "Address is the publicly attributed Ronin bridge exploit recipient."
+}

@@ -1,0 +1,12 @@
+{
+  "address": "0x5a1e5f00d5a1e5f00d5a1e5f00d5a1e5f00d5a1e",
+  "mixer_hops": 1,
+  "sanctioned_counterparties": 0,
+  "attributed_to_sanctioned_cluster": false,
+  "cluster_label": "",
+  "labels": [
+    "defi-vault",
+    "yield-aggregator"
+  ],
+  "counterparty_notes": "Vault received 41 ETH from a depositor who is one hop downstream of a Tornado Cash relayer withdrawal. No direct sanctioned counterparty; single indirect mixer hop."
+}

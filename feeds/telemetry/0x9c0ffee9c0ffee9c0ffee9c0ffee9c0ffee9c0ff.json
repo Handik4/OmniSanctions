@@ -1,0 +1,12 @@
+{
+  "address": "0x9c0ffee9c0ffee9c0ffee9c0ffee9c0ffee9c0ff",
+  "mixer_hops": 2,
+  "sanctioned_counterparties": 0,
+  "attributed_to_sanctioned_cluster": false,
+  "cluster_label": "possible DPRK-linked bridge hopper",
+  "labels": [
+    "fresh-wallet",
+    "bridge-user"
+  ],
+  "counterparty_notes": "Wallet funded via two cross-chain bridge hops from a cluster the gateway tags as possibly DPRK-linked; weak attribution."
+}
