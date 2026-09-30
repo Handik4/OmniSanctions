@@ -74,8 +74,21 @@ def fund(vm, who, amount=1000 * ATTO):
         pass
 
 
+def set_feeds(c, vm, governor, ofac=OFAC_FEED, eu=EU_FEED, un=UN_FEED):
+    """Serve these feed bodies AND commit their SHA-256 roots on-chain
+    (sync_registry), the way a governor publishes a list update. Leaves the mocks
+    registered so the following screenings fetch exactly the committed bytes."""
+    vm.clear_mocks()
+    mock_feeds(vm, ofac=ofac, eu=eu, un=un)
+    vm.sender = governor
+    for rid in (1, 2, 3):
+        c.sync_registry(rid)
+
+
 def configured(vm, direct_deploy, governor):
-    """Deploy as `governor`, seed the three registries and the telemetry gateway."""
+    """Deploy as `governor`, seed the three registries, commit their roots and
+    set the telemetry gateway. Mocks are cleared afterwards; tests register what
+    they need (unchanged feed bodies still match the committed roots)."""
     vm.sender = governor
     c = direct_deploy(CONTRACT)
     vm.sender = governor
@@ -83,6 +96,8 @@ def configured(vm, direct_deploy, governor):
     c.add_registry("EU Consolidated Financial Sanctions", "European Commission FSF", EU_URL)
     c.add_registry("UN Security Council ISIL/Al-Qaida", "UN Security Council", UN_URL)
     c.set_telemetry_url(GATEWAY)
+    set_feeds(c, vm, governor)
+    vm.clear_mocks()
     return c
 
 

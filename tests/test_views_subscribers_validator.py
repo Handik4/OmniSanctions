@@ -109,13 +109,13 @@ def test_check_compliance_not_blocked_for_clean(env, direct_vm, direct_bob):
     assert r["tier"] == T1 and r["blocked"] is False and r["screened"] is True
 
 
-def test_check_compliance_tracks_newest_verdict(env, direct_vm, direct_bob):
+def test_check_compliance_tracks_newest_verdict(env, direct_vm, direct_alice, direct_bob):
     mock_telemetry(direct_vm, telem(CLEAN))
     mock_verdict(direct_vm, T1)
     screen(env, direct_vm, direct_bob, CLEAN)
     warp_later(direct_vm, 3700)
     direct_vm.clear_mocks()
-    mock_feeds(direct_vm, ofac=entries({"address": CLEAN, "name": "Newly Listed Exchange", "program": "CYBER"}))
+    set_feeds(env, direct_vm, direct_alice, ofac=entries({"address": CLEAN, "name": "Newly Listed Exchange", "program": "CYBER"}))
     screen(env, direct_vm, direct_bob, CLEAN)
     assert env.check_compliance(CLEAN)["tier"] == T3 and env.check_compliance(CLEAN)["case_id"] == 2
 
@@ -138,7 +138,7 @@ def test_get_all_registries(env):
         "EU Consolidated Financial Sanctions",
         "UN Security Council ISIL/Al-Qaida",
     ]
-    assert all(r["is_active"] and r["root_hash"] == "" for r in regs)
+    assert all(r["is_active"] and len(r["root_hash"]) == 64 for r in regs)
 
 
 def test_deactivated_registry_still_listed_but_not_counted(env, direct_vm, direct_alice):
@@ -219,10 +219,11 @@ def test_sync_registry_commits_sha256_root(env, direct_vm, direct_alice):
 def test_sync_registry_rejects_corrupt_feed(env, direct_vm, direct_alice):
     direct_vm.clear_mocks()
     direct_vm.mock_web(r".*ofac.*", ok("<html/>"))
+    before = env.get_all_registries()[0]["root_hash"]
     direct_vm.sender = direct_alice
     with direct_vm.expect_revert("[EXTERNAL]"):
         env.sync_registry(1)
-    assert env.get_all_registries()[0]["root_hash"] == ""
+    assert env.get_all_registries()[0]["root_hash"] == before
 
 
 def test_sync_registry_unreachable_is_transient(env, direct_vm, direct_alice):
@@ -249,12 +250,12 @@ def leader_then(env, vm, who, address, alias, telemetry, tier, conf=80):
 
 
 def test_validator_agrees_with_identical_reexecution(env, direct_vm, direct_bob):
-    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER), T3, 80)
+    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER, hops=1), T3, 80)
     assert direct_vm.run_validator() is True
 
 
 def test_validator_agrees_within_confidence_tolerance(env, direct_vm, direct_bob):
-    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER), T3, 80)
+    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER, hops=1), T3, 80)
     mock_verdict(direct_vm, T3, 80)  # same world; override the leader's reported confidence instead
     lr = {"outcome": "FUZZY_RESOLUTION", "tier": T3, "confidence": 70, "rationale": "r", "matched_entity": "",
           "registries_checked": 3}
@@ -262,7 +263,7 @@ def test_validator_agrees_within_confidence_tolerance(env, direct_vm, direct_bob
 
 
 def test_validator_rejects_confidence_outside_tolerance(env, direct_vm, direct_bob):
-    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER), T3, 80)
+    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER, hops=1), T3, 80)
     lr = {"outcome": "FUZZY_RESOLUTION", "tier": T3, "confidence": 99, "rationale": "r", "matched_entity": "",
           "registries_checked": 3}
     # validator recomputes 80; |99-80| = 19 <= 25 agrees, 99 vs a clamped-low validator would not
@@ -275,7 +276,7 @@ def test_validator_rejects_confidence_outside_tolerance(env, direct_vm, direct_b
 
 
 def test_validator_rejects_tier_mismatch(env, direct_vm, direct_bob):
-    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER), T3, 80)
+    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER, hops=1), T3, 80)
     mock_verdict_swap = {"outcome": "FUZZY_RESOLUTION", "tier": T2, "confidence": 80, "rationale": "r",
                          "matched_entity": "", "registries_checked": 3}
     assert direct_vm.run_validator(leader_result=mock_verdict_swap) is False
@@ -290,12 +291,12 @@ def test_validator_rejects_leader_claiming_clean_when_feed_has_exact_hit(env, di
 
 
 def test_validator_rejects_leader_error(env, direct_vm, direct_bob):
-    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER), T3)
+    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER, hops=1), T3)
     assert direct_vm.run_validator(leader_error=Exception("[LLM_ERROR] boom")) is False
 
 
 def test_validator_rejects_fabricated_inconclusive(env, direct_vm, direct_bob):
-    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER), T3)
+    leader_then(env, direct_vm, direct_bob, OTHER, "Lazarus Group", telem(OTHER, hops=1), T3)
     lie = {"outcome": "INCONCLUSIVE", "tier": TU, "confidence": 0, "rationale": "x", "matched_entity": "",
            "registries_checked": 0}
     assert direct_vm.run_validator(leader_result=lie) is False

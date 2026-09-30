@@ -67,7 +67,7 @@ def test_second_entry_in_bare_list_hit(env, direct_vm, direct_bob):
 
 def test_hit_on_multiple_lists_reports_all(direct_vm, direct_deploy, direct_alice, direct_bob):
     c = configured(direct_vm, direct_deploy, direct_alice)
-    mock_feeds(direct_vm, un=[SANCTIONED.lower(), "0x7777777777777777777777777777777777777777"])
+    set_feeds(c, direct_vm, direct_alice, un=[SANCTIONED.lower(), "0x7777777777777777777777777777777777777777"])
     r = screen(c, direct_vm, direct_bob, SANCTIONED)["audit_rationale"]
     assert "2 watchlist(s)" in r and "UN Security Council" in r and "OFAC" in r
 

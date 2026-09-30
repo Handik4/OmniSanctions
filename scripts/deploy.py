@@ -11,9 +11,9 @@ record source_sha256 -> seed 3 watchlists, the telemetry gateway, a subscriber
 and 4 screening cases -> write deployments/studio-next.json.
 
 Cases 1-3 are resolved by live validator consensus, which needs the watchlist
-feeds to be reachable from the validators' network. The script preflights every
-feed URL from this machine; unreachable ones leave the case PENDING (fee stays
-escrowed, nothing is lost) and print the command that finishes the job."""
+feeds to be reachable from the validators' network. This script only OPENS the
+cases (and commits/verifies each registry root_hash against feeds/); run
+scripts/interact_live.py resolve <id> to trigger real validator consensus."""
 
 from __future__ import annotations
 
@@ -145,6 +145,25 @@ def main() -> None:
         seed["subscriber_tx"] = tx
         save_deployment(dep)
 
+    # ---- commit + verify each feed's root_hash --------------------------------
+    # The contract fails closed (FEED_INTEGRITY_MISMATCH) unless a feed hashes to
+    # the root committed on-chain, so publish the roots of the files in feeds/.
+    import hashlib
+    from common import ROOT
+    onchain = {r["name"]: r for r in read(client, addr, "get_all_registries")}
+    for name, _, fname in WATCHLISTS:
+        local = hashlib.sha256((ROOT / "feeds" / fname).read_bytes()).hexdigest()
+        if onchain[name]["root_hash"] != local:
+            tx, _ = write(client, addr, "sync_registry", [onchain[name]["registry_id"]], label=f"sync_registry {name}")
+            seed.setdefault("sync_txs", {})[name] = tx
+            onchain = {r["name"]: r for r in read(client, addr, "get_all_registries")}
+            save_deployment(dep)
+        if onchain[name]["root_hash"] != local:
+            raise SystemExit(f"root_hash for {name} is {onchain[name]['root_hash']} but feeds/{fname} hashes to {local}. "
+                             "Is the published feed identical to the local file?")
+        log(f"  root_hash verified {name}: {local}")
+    seed["root_hashes"] = {n: onchain[n]["root_hash"] for n, _, _ in WATCHLISTS}
+
     # ---- feed preflight ------------------------------------------------------
     probes = [f"{base}/{f}" for _, _, f in WATCHLISTS] + [f"{base}/telemetry/{EXCHANGE.lower()}.json"]
     feeds_up = all(reachable(u) for u in probes)
@@ -156,6 +175,14 @@ def main() -> None:
     done = {c["address"].lower(): c for c in seed["cases"]}
     for label, address, alias, expected, do_resolve in SEED_CASES:
         rec = done.get(address.lower())
+        if rec is None:  # adopt a case a previous, interrupted run already opened
+            found = [c for c in read(client, addr, "get_all_cases") if c["target_address"] == address.lower()]
+            if found:
+                c0 = max(found, key=lambda c: c["case_id"])
+                rec = {"case_id": c0["case_id"], "label": label, "address": address, "alias": alias,
+                       "expected_tier": expected, "request_tx": None, "resolve_tx": None}
+                seed["cases"].append(rec)
+                save_deployment(dep)
         if rec is None:
             log(f"\ncase: {label}")
             tx, _ = write(client, addr, "request_compliance_screening", [address, alias],
@@ -167,12 +194,6 @@ def main() -> None:
             seed["cases"].append(rec)
             save_deployment(dep)
         case = read(client, addr, "get_case", [rec["case_id"]])
-        if do_resolve and feeds_up and case["status"] == "PENDING":
-            tx, _ = write(client, addr, "resolve_compliance_consensus", [rec["case_id"]],
-                          label=f"resolve case {rec['case_id']}")
-            rec["resolve_tx"] = tx
-            case = read(client, addr, "get_case", [rec["case_id"]])
-            save_deployment(dep)
         log(f"  case {rec['case_id']}: {case['status']} {case['risk_tier']} conf={case['confidence_score']}")
 
     dep["metrics"] = read(client, addr, "get_oracle_metrics")

@@ -2,30 +2,30 @@
   "network": "studio-next",
   "chain_id": 61997,
   "rpc_url": "https://studio-next.genlayer.com/api",
-  "contract_address": "0x3FE369576cF628BB441A40b1243f0E11ce0F381E",
-  "explorer_url": "https://explorer-studio-next.genlayer.com/address/0x3FE369576cF628BB441A40b1243f0E11ce0F381E",
+  "contract_address": "0xfb0536b49bb7eb5a54283d67e9DaF8f2bE339c03",
+  "explorer_url": "https://explorer-studio-next.genlayer.com/address/0xfb0536b49bb7eb5a54283d67e9DaF8f2bE339c03",
   "deployer": "0xEae4d2a2DCed4c6DE9C23840373D5b13e4BD6987",
-  "deploy_tx": "0x3bdaa3787f7c0ea46e00fcdef52196df18966d48d877369499a724b7faf47092",
-  "deploy_tx_url": "https://explorer-studio-next.genlayer.com/tx/0x3bdaa3787f7c0ea46e00fcdef52196df18966d48d877369499a724b7faf47092",
+  "deploy_tx": "0x2acde4d3bd8d209d15ca336292a56da6d6c25d77d2bc0f9a5b606992a365e44d",
+  "deploy_tx_url": "https://explorer-studio-next.genlayer.com/tx/0x2acde4d3bd8d209d15ca336292a56da6d6c25d77d2bc0f9a5b606992a365e44d",
   "source": "contracts/omni_sanctions.py",
-  "source_sha256": "4f6607e8da104b6d57f737c0bbcfadf36c4032ed7d5cd93b32e5f78d1ca778b1",
+  "source_sha256": "1f1cc21c1e44fcfab733b214129b6a49378ead42d20be45f14d3f696abd82c54",
   "feeds_base_url": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds",
   "seed": {
     "registries": [
       {
         "name": "US OFAC Specially Designated Nationals",
         "feed": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds/ofac-sdn.json",
-        "tx": "0x45a2a451172add3a41c3de9f3240fb6263e92809e4add3d47c72968cb33c136d"
+        "tx": "0xbf10491c2baa9092e92cdda7b75cd98949fd825b616c16bbdbadd1b3f7b51db3"
       },
       {
         "name": "EU Consolidated Financial Sanctions",
         "feed": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds/eu-consolidated.json",
-        "tx": "0xd1e86d0d8aaa582bb38e29c33082ce7f331be112e53241e63e7bcedd18e5105a"
+        "tx": "0x83c53c7ffb1d78e6b1bdd0d74e0491ccaa90cbe57fb3da0ec6fd8d90ca085db7"
       },
       {
         "name": "UN Security Council ISIL/Al-Qaida",
         "feed": "https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds/un-securitycouncil.json",
-        "tx": "0x57f8dabab81755a3037476dbdd63ac38ab13501616fa69bfffb197d09deca167"
+        "tx": "0xc833aab3f6f23cb3d0a9f62d618fa009f25335ab70b47350390595db88addcc9"
       }
     ],
     "cases": [
@@ -35,8 +35,12 @@
         "address": "0x098B716B8Aaf21512996dC57EB0615e2383E2f96",
         "alias": "Lazarus Group",
         "expected_tier": "TIER_3_SANCTIONED",
-        "request_tx": "0x27069afa7b1ef2d45d0a565dd1408fcd20c8a2e29463a7bb42d4ca89c42c5ae6",
-        "resolve_tx": null
+        "request_tx": "0x635968d075b4d00443f74cbc799f32db4f41e7693e4752e13b39c1182b36201a",
+        "resolve_tx": "0x77e34ea9f695228dd924efacf39e0b195d1133b0926552a89c9d05be24768d60",
+        "consensus": "MAJORITY_AGREE",
+        "verdict": "TIER_3_SANCTIONED",
+        "confidence": 100,
+        "outcome": "EXACT_MATCH"
       },
       {
         "case_id": 2,
@@ -44,8 +48,12 @@
         "address": "0x28C6c06298d514Db089934071355E5743bf21d60",
         "alias": "Binance 14",
         "expected_tier": "TIER_1_CLEAN",
-        "request_tx": "0xc45d320e1a95f48cfd87a1c5c848b50fdecbd6efaf8274d2f6cdfc49effbfe78",
-        "resolve_tx": null
+        "request_tx": null,
+        "resolve_tx": "0x2b8b7ddc3d6fed1263ce3f107deacb7270dcb88f1d73befbd86a1591d234ba57",
+        "consensus": "MAJORITY_AGREE",
+        "verdict": "TIER_1_CLEAN",
+        "confidence": 95,
+        "outcome": "CLEAN_ATTESTATION"
       },
       {
         "case_id": 3,
@@ -53,8 +61,12 @@
         "address": "0x5a1e5f00d5a1e5f00d5a1e5f00d5a1e5f00d5a1e",
         "alias": "Yield Vault v2",
         "expected_tier": "TIER_2_ELEVATED",
-        "request_tx": "0x84469d1e382d3d647898ee5da9f50eb98806d4f2425255c03f06cb14c44d2293",
-        "resolve_tx": null
+        "request_tx": "0xc63c0113af561ea70412638a0fea3dc750e336b62a7975514048474c7c492d77",
+        "resolve_tx": "0xb8f219b03fc6daa019bb31844ef379679b51d5dd3962918f66cc70100679ef41",
+        "consensus": "MAJORITY_AGREE",
+        "verdict": "TIER_2_ELEVATED",
+        "confidence": 85,
+        "outcome": "FUZZY_RESOLUTION"
       },
       {
         "case_id": 4,
@@ -62,14 +74,24 @@
         "address": "0x9c0ffee9c0ffee9c0ffee9c0ffee9c0ffee9c0ff",
         "alias": "Lazarus Grp",
         "expected_tier": null,
-        "request_tx": "0x78fae768a9f53e44c89dcfeeebf25b5134a3f48a445c4cf1d683fda1df722dcf",
+        "request_tx": "0x2fa26d52a600782598d2363c72bc508bbf783bc58a0cefb7310d7543c46dd921",
         "resolve_tx": null
       }
     ],
-    "telemetry_tx": "0x9b2ab04551b7674f60c3924427712d3640ea3cabf6e7de144ff53d9772c1e899",
-    "subscriber_tx": "0x77a3784fd52a04abf9b0960a71961b212307b1e0ae896e3e19ad5bd8953d202d"
+    "telemetry_tx": "0xd8f2757e59658cc770a043270affb696edf3bd262d9a666601b29533d449ad83",
+    "subscriber_tx": "0x88c3afa73a0068417665d53551961576cf311fb077b5cba215e8cab9c74779ca",
+    "sync_txs": {
+      "US OFAC Specially Designated Nationals": "0x6f25901077c0feb85d819cef9e40db57c40e6bf1d1d7635496075a06c573062f",
+      "EU Consolidated Financial Sanctions": "0x6a16ab78e6408eef22e463a67549fafde04eb3bdb98633bfb6e6761f4ccb22bc",
+      "UN Security Council ISIL/Al-Qaida": "0x032b89c0f11c6fa8e2f64f88ab900c3908a2520a573ff929236d4b3d0f77577b"
+    },
+    "root_hashes": {
+      "US OFAC Specially Designated Nationals": "92602a902ff0afa1e8b9c40fce682851da7a6c921a59a4c6e8e89a176fca9321",
+      "EU Consolidated Financial Sanctions": "802685eacaab067c402771ad3803a15adfe6c581e12b48da528b9064f42e3ec9",
+      "UN Security Council ISIL/Al-Qaida": "30360de99c9509292cfa8db1c2379f1c7ba7d01df922de6c277769e05192e327"
+    }
   },
-  "deployed_at": 1790781489,
+  "deployed_at": 1790784475,
   "metrics": {
     "active_watchlists": 3,
     "clean": 0,

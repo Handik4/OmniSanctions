@@ -5,8 +5,9 @@ Decentralized sanctions and compliance risk oracle with fuzzy entity resolution,
 | | |
 |---|---|
 | Network | GenLayer Studio Next · chain `61997` (`0xF22D`) · RPC `https://studio-next.genlayer.com/api` |
-| Contract | [`0x3FE369576cF628BB441A40b1243f0E11ce0F381E`](https://explorer-studio-next.genlayer.com/address/0x3FE369576cF628BB441A40b1243f0E11ce0F381E) |
-| Deploy tx | see `deployments/studio-next.json` (includes `source_sha256`) |
+| Contract | [`0xfb0536b49bb7eb5a54283d67e9DaF8f2bE339c03`](https://explorer-studio-next.genlayer.com/address/0xfb0536b49bb7eb5a54283d67e9DaF8f2bE339c03) |
+| Deploy tx | [`0x2acde4d3bd…`](https://explorer-studio-next.genlayer.com/tx/0x2acde4d3bd8d209d15ca336292a56da6d6c25d77d2bc0f9a5b606992a365e44d) |
+| Source SHA-256 | `1f1cc21c1e44fcfab733b214129b6a49378ead42d20be45f14d3f696abd82c54` |
 | Source | `contracts/omni_sanctions.py` (runner `py-genlayer` v0.3.0) |
 
 ## Protocol theory
@@ -23,8 +24,9 @@ A DeFi protocol pays a **0.02 GEN** fee to have an address screened. A GenVM val
 Three ideas carry the design:
 
 1. **Deterministic first.** An exact address hit on any reachable watchlist is `TIER_3`, decided in code at confidence 100. The model is never consulted and cannot talk it down.
-2. **The model reasons only inside a computed corridor.** `_bounds()` derives a `[floor, ceiling]` tier range from hard signals (mixer within 3 hops, sanctioned counterparties, integer fuzzy score ≥60 / ≥85, gateway cluster attribution). A signal-free wallet is capped at Tier 1; a wallet with any exposure signal cannot be cleared; Tier 3 from fuzzy evidence needs a *strong* signal. Confidence is clamped to a per-tier band.
+2. **The model reasons only inside a computed corridor, built from authoritative evidence only.** `_bounds()` derives `[floor, ceiling]` from *verified gateway telemetry* (mixer within 3 hops, sanctioned counterparties, cluster attribution) and — upstream — exact watchlist hits. The caller-supplied `entity_alias` is **unverified** and never moves the floor: a clean address stays capable of `TIER_1_CLEAN` whatever string the caller supplies (audit finding: alias-spoofing defamation). A strong alias match (≥85) can only lift the *ceiling* to Tier 3 when verified telemetry already shows exposure. Confidence is clamped to a per-tier band.
 3. **Fail closed, never a false clean.** A non-sanctioned verdict needs *all* active watchlists and the telemetry gateway to be reachable and schema-valid. Otherwise: `TIER_UNKNOWN`, escrow → refund.
+4. **Cryptographic feed integrity.** `sync_registry` (governor) commits the SHA-256 of each feed's raw bytes as the registry `root_hash`. Every screening re-hashes the downloaded payload; an empty or mismatching root fails closed with rationale `FEED_INTEGRITY_MISMATCH` and a full refund — a compromised host can neither forge a designation nor hide one. A legitimate list update requires a new `sync_registry`.
 
 Consensus uses `gl.vm.run_nondet` with a custom validator: each validator re-runs the whole screening and agrees only if `outcome` and `tier` match and confidence is within ±25. A leader that lies (e.g. reports a listed address as clean) is rejected — covered by tests via `run_validator`.
 
@@ -59,7 +61,7 @@ Fixtures for the demo live in `feeds/`. **They are demonstration data**; only th
 
 ```
 contracts/omni_sanctions.py   the intelligent contract
-tests/                        direct-mode suite (220 test items)
+tests/                        direct-mode suite (261 test items; audit PoCs in test_omni_sanctions.py)
 scripts/deploy.py             key → fund → deploy → seed
 scripts/interact_live.py      status / screen / resolve / refund CLI
 feeds/                        demo watchlist + telemetry fixtures
@@ -72,7 +74,7 @@ frontend/                     Vite + React + Tailwind institutional light-mode H
 ```bash
 uv venv --python 3.12 && uv pip install --prerelease=allow -r requirements.txt
 .venv/bin/genvm-lint check contracts/omni_sanctions.py
-.venv/bin/python -m pytest -q                      # 220 passed
+.venv/bin/python -m pytest -q                      # 261 passed
 
 .venv/bin/python scripts/deploy.py                 # key in .env (0600, git-ignored), 10 GEN via sim_fundAccount,
                                                    # ~0.1 GEN fee distribution on every write
@@ -92,12 +94,25 @@ The default is `https://raw.githubusercontent.com/Handik4/OmniSanctions/main/fee
 5. Inspect the tier badge, confidence bar and rationale; open **Issue Certificate** to print/export.
 6. Try to break it: re-screen within an hour (served from cache), screen an address with no telemetry (fails closed, refund), inject instructions into the alias.
 
-## Live status of the seeded deployment
+## Live proofs on Studio Next
 
-The contract, 3 watchlists, the telemetry gateway, a subscriber and 4 screening cases are on-chain (see `deployments/studio-next.json`). The four
-cases were *requested* on-chain; resolving them by live consensus requires validators to reach the feed URLs, which requires publishing
-`feeds/` at `FEEDS_BASE_URL`. Until then they are `PENDING` (fees safely escrowed), and cases 1–3 resolve with
-`scripts/interact_live.py resolve <id>` once the feeds are reachable; case 4 is left pending for the steward to evaluate in the UI.
+Real validator consensus on the deployed contract (recorded in `deployments/studio-next.json`):
+
+| Case | Target | Alias | Verdict | Consensus | Resolution tx |
+|---|---|---|---|---|---|
+| 1 | `0x098B716B…` | Lazarus Group | **TIER_3_SANCTIONED** (100) | MAJORITY_AGREE | [`0x77e34ea9f6…`](https://explorer-studio-next.genlayer.com/tx/0x77e34ea9f695228dd924efacf39e0b195d1133b0926552a89c9d05be24768d60) |
+| 2 | `0x28C6c062…` | Binance 14 | **TIER_1_CLEAN** (95) | MAJORITY_AGREE | [`0x2b8b7ddc3d…`](https://explorer-studio-next.genlayer.com/tx/0x2b8b7ddc3d6fed1263ce3f107deacb7270dcb88f1d73befbd86a1591d234ba57) |
+| 3 | `0x5a1e5f00…` | Yield Vault v2 | **TIER_2_ELEVATED** (85) | MAJORITY_AGREE | [`0xb8f219b03f…`](https://explorer-studio-next.genlayer.com/tx/0xb8f219b03fc6daa019bb31844ef379679b51d5dd3962918f66cc70100679ef41) |
+| 4 | `0x9c0ffee9…` | Lazarus Grp | *PENDING — left for stewards* | — | request [`0x2fa26d52a6…`](https://explorer-studio-next.genlayer.com/tx/0x2fa26d52a600782598d2363c72bc508bbf783bc58a0cefb7310d7543c46dd921) |
+
+Case 1 is a deterministic exact OFAC hit; cases 2 and 3 went through the multi-validator LLM committee inside the telemetry-derived corridor.
+Each registry `root_hash` equals the SHA-256 of the corresponding file in `feeds/` (checked by `deploy.py`):
+
+- US OFAC Specially Designated Nationals: root `92602a902ff0afa1e8b9c40fce682851da7a6c921a59a4c6e8e89a176fca9321` — [sync tx](https://explorer-studio-next.genlayer.com/tx/0x6f25901077c0feb85d819cef9e40db57c40e6bf1d1d7635496075a06c573062f)
+- EU Consolidated Financial Sanctions: root `802685eacaab067c402771ad3803a15adfe6c581e12b48da528b9064f42e3ec9` — [sync tx](https://explorer-studio-next.genlayer.com/tx/0x6a16ab78e6408eef22e463a67549fafde04eb3bdb98633bfb6e6761f4ccb22bc)
+- UN Security Council ISIL/Al-Qaida: root `30360de99c9509292cfa8db1c2379f1c7ba7d01df922de6c277769e05192e327` — [sync tx](https://explorer-studio-next.genlayer.com/tx/0x032b89c0f11c6fa8e2f64f88ab900c3908a2520a573ff929236d4b3d0f77577b)
+
+Feeds are served from `https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds`.  Editing a file in `feeds/` without re-running `sync_registry` makes screenings fail closed by design.
 
 ## Limits
 

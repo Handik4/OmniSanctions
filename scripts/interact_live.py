@@ -20,7 +20,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 from common import (  # noqa: E402
-    SCREENING_FEE, ensure_account, ensure_funded, load_deployment, log, make_client, read, write,
+    SCREENING_FEE, ensure_account, ensure_funded, load_deployment, log, make_client, read, save_deployment, write,
 )
 
 
@@ -58,8 +58,15 @@ def main(argv: list[str]) -> None:
             show(read(client, addr, "get_case", [case_id]))
     elif cmd == "resolve":
         ensure_funded(client, account)
-        write(client, addr, "resolve_compliance_consensus", [int(rest[0])])
-        show(read(client, addr, "get_case", [int(rest[0])]))
+        tx, receipt = write(client, addr, "resolve_compliance_consensus", [int(rest[0])])
+        case = read(client, addr, "get_case", [int(rest[0])])
+        show(case)
+        # Persist the proof: tx hash, consensus outcome and verdict for the seeded case.
+        for rec in dep.get("seed", {}).get("cases", []):
+            if rec["case_id"] == int(rest[0]):
+                rec.update(resolve_tx=tx, consensus=receipt.get("result_name"), verdict=case["risk_tier"],
+                           confidence=case["confidence_score"], outcome=case["outcome"])
+        save_deployment(dep)
     elif cmd == "cancel":
         write(client, addr, "cancel_screening", [int(rest[0])])
     elif cmd == "refund":

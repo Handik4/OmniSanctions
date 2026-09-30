@@ -122,7 +122,9 @@ def write(client, address, method, args=None, value: int = 0, label: str = "") -
     result = _exec_result(receipt)
     log(f"     status={status} {result}".rstrip())
     if result and result not in ("FINISHED_WITH_RETURN", "SUCCESS"):
-        raise RuntimeError(f"{label or method} finished with an execution error: {receipt}")
+        import re as _re
+        m = _re.search(r"'payload': '([^']*)'", str(receipt))
+        raise RuntimeError(f"{label or method} failed: {m.group(1) if m else result} (tx {tx_hex})")
     return tx_hex, receipt
 
 

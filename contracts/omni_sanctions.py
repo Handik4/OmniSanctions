@@ -243,34 +243,36 @@ def _as_int(v):
     return v if v >= 0 else None
 
 
-def _body_text(res) -> str:
+def _raw_bytes(res) -> bytes:
     body = getattr(res, "body", None)
     if isinstance(body, (bytes, bytearray)):
-        return bytes(body).decode("utf-8")
+        return bytes(body)
     if body is None:
-        return ""
-    return str(body)
+        return b""
+    return str(body).encode("utf-8")
 
 
 def _http_get_json(url: str):
-    """Fetch + parse a JSON document. Returns (state, data, raw_len) where state
-    is OK / UNREACHABLE / INVALID. Never raises."""
+    """Fetch + parse a JSON document. Returns (state, data, digest) where state
+    is OK / UNREACHABLE / INVALID and digest is the SHA-256 (hex) of the raw
+    response bytes -- the value a registry's on-chain root_hash commits to.
+    Never raises."""
     try:
         res = gl.nondet.web.get(url)
     except Exception:
-        return "UNREACHABLE", None, 0
+        return "UNREACHABLE", None, ""
     status = getattr(res, "status", None)
     if status is None:
         status = getattr(res, "status_code", None)
     if not (isinstance(status, int) and 200 <= status < 300):
-        return "UNREACHABLE", None, 0
+        return "UNREACHABLE", None, ""
     try:
-        text = _body_text(res)
-        if len(text) > MAX_FEED_BYTES:
-            return "INVALID", None, len(text)
-        return "OK", json.loads(text), len(text)
+        raw = _raw_bytes(res)
+        if len(raw) > MAX_FEED_BYTES:
+            return "INVALID", None, ""
+        return "OK", json.loads(raw.decode("utf-8")), hashlib.sha256(raw).hexdigest()
     except Exception:
-        return "INVALID", None, 0
+        return "INVALID", None, ""
 
 
 def _parse_feed(data, address: str, alias: str) -> dict:
@@ -383,26 +385,31 @@ def _parse_telemetry(data, address: str) -> dict:
 
 
 def _bounds(top_score: int, telem: dict) -> tuple:
-    """Deterministic tier corridor (floor_rank, ceiling_rank) from hard signals.
+    """Deterministic tier corridor (floor_rank, ceiling_rank).
 
-    floor 2 : any exposure signal (mixer within MAX_HOP_SIGNAL hops, a sanctioned
-              counterparty, or an alias match >= FUZZY_T2_MIN) -- cannot be cleared.
-    ceil  3 : only with a STRONG signal (alias match >= FUZZY_T3_MIN, or the
-              gateway attributes the address to a sanctioned cluster).
-    ceil  2 : otherwise if any exposure signal exists.
-    ceil  1 : no signal at all -- the model cannot manufacture a risk."""
+    The corridor is derived ONLY from authoritative evidence: verified gateway
+    telemetry (and, upstream, exact watchlist hits). The caller-supplied
+    `entity_alias` is unverified input and NEVER moves the floor -- otherwise
+    anyone could defame a clean address by claiming it belongs to a listed name.
+
+    floor 2 : verified exposure -- a mixer within MAX_HOP_SIGNAL hops, a
+              sanctioned counterparty, or gateway cluster attribution.
+    ceil  3 : gateway cluster attribution, OR a strong alias match
+              (>= FUZZY_T3_MIN) that is corroborated by verified exposure.
+    ceil  2 : verified exposure without a strong corroborated attribution.
+    1..1    : no verified exposure -- resolves to TIER_1_CLEAN whatever the
+              alias says, and the model cannot manufacture a risk."""
     hops = telem["mixer_hops"]
     exposure = (
         (1 <= hops <= MAX_HOP_SIGNAL)
         or telem["sanctioned_counterparties"] >= 1
-        or top_score >= FUZZY_T2_MIN
+        or telem["cluster_attributed"]
     )
-    strong = top_score >= FUZZY_T3_MIN or telem["cluster_attributed"]
-    if strong:
+    if not exposure:
+        return 1, 1
+    if telem["cluster_attributed"] or top_score >= FUZZY_T3_MIN:
         return 2, 3
-    if exposure:
-        return 2, 2
-    return 1, 1
+    return 2, 2
 
 
 def _clamp_confidence(tier: str, conf: int) -> int:
@@ -479,10 +486,10 @@ Choose the tier best supported by the evidence inside that range.
 === 3. ADDRESS ===
 {address}
 
-=== 4. CLAIMED ENTITY ALIAS ===
+=== 4. CLAIMED ENTITY ALIAS (UNVERIFIED - supplied by the requester; treat as a claim, not evidence) ===
 <untrusted_alias>{alias or "(none supplied)"}</untrusted_alias>
 
-=== 5. WATCHLIST NAME CANDIDATES (fuzzy score 0-100 computed by code) ===
+=== 5. WATCHLIST NAME CANDIDATES (fuzzy score of the UNVERIFIED alias vs listed names; corroborate with section 6) ===
 <untrusted_watchlist_candidates>
 {cand_lines}
 </untrusted_watchlist_candidates>
@@ -538,11 +545,19 @@ def _screen(address: str, alias: str, registries: list, telemetry_url: str) -> d
     hits = []
     all_cands = []
     unhealthy = []
+    integrity = []
     checked = 0
     for reg in registries:
-        state, data, _ = _http_get_json(reg["feed_url"])
+        state, data, digest = _http_get_json(reg["feed_url"])
         if state != "OK":
             unhealthy.append(f"{reg['name']} ({state.lower()})")
+            continue
+        # Cryptographic integrity: the payload must hash to the root the
+        # governor committed with sync_registry. An unsynced (empty) or
+        # mismatching root means the feed cannot be trusted -- neither its hits
+        # nor its silence.
+        if reg["root_hash"] == "" or digest != reg["root_hash"]:
+            integrity.append(reg["name"])
             continue
         ev = _parse_feed(data, address, alias)
         if not ev["valid"]:
@@ -573,11 +588,17 @@ def _screen(address: str, alias: str, registries: list, telemetry_url: str) -> d
             "registries_checked": checked,
         }
 
-    # ---- Fail closed: clean/elevated needs COMPLETE watchlist coverage ------
+    # ---- Fail closed: clean/elevated needs COMPLETE, VERIFIED coverage ------
+    if integrity:
+        return _inconclusive(
+            "FEED_INTEGRITY_MISMATCH: payload does not match the committed root_hash for "
+            + ", ".join(integrity)
+            + (("; also unavailable: " + ", ".join(unhealthy)) if unhealthy else "")
+        )
     if unhealthy:
         return _inconclusive("incomplete watchlist coverage: " + ", ".join(unhealthy))
 
-    t_state, t_data, _ = _http_get_json(telemetry_url.replace("{address}", address)) if telemetry_url else ("UNREACHABLE", None, 0)
+    t_state, t_data, _ = _http_get_json(telemetry_url.replace("{address}", address)) if telemetry_url else ("UNREACHABLE", None, "")
     if t_state != "OK":
         return _inconclusive(f"address telemetry gateway {t_state.lower()}")
     telem = _parse_telemetry(t_data, address)
@@ -790,15 +811,17 @@ class OmniSanctions(gl.contract.Contract):
             status = getattr(res, "status", None)
             if not (isinstance(status, int) and 200 <= status < 300):
                 raise gl.vm.UserError("[TRANSIENT] feed returned non-2xx")
-            raw = res.body if isinstance(res.body, (bytes, bytearray)) else str(res.body).encode("utf-8")
+            raw = _raw_bytes(res)
+            if len(raw) > MAX_FEED_BYTES:
+                raise gl.vm.UserError("[EXTERNAL] feed exceeds size limit")
             try:
-                data = json.loads(bytes(raw).decode("utf-8"))
+                data = json.loads(raw.decode("utf-8"))
             except Exception:
                 raise gl.vm.UserError("[EXTERNAL] feed is not valid JSON")
             probe = _parse_feed(data, _ZERO_ADDR, "")
             if not probe["valid"]:
                 raise gl.vm.UserError("[EXTERNAL] feed schema invalid")
-            return {"digest": hashlib.sha256(bytes(raw)).hexdigest(), "count": probe["count"]}
+            return {"digest": hashlib.sha256(raw).hexdigest(), "count": probe["count"]}
 
         out = gl.eq_principle.strict_eq(fetch)
         r = self.registries[registry_id]
@@ -962,7 +985,7 @@ class OmniSanctions(gl.contract.Contract):
         for i in range(1, int(self.next_registry_id)):
             if i in self.registries and self.registries[i].is_active:
                 r = self.registries[i]
-                regs.append({"name": r.name, "feed_url": r.feed_url})
+                regs.append({"name": r.name, "feed_url": r.feed_url, "root_hash": r.root_hash})
 
         def leader_fn() -> dict:
             return _screen(address, alias, regs, telemetry_url)
