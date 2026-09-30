@@ -114,7 +114,9 @@ Each registry `root_hash` equals the SHA-256 of the corresponding file in `feeds
 
 Feeds are served from `https://raw.githubusercontent.com/Handik4/OmniSanctions/main/feeds`.  Editing a file in `feeds/` without re-running `sync_registry` makes screenings fail closed by design.
 
-## Limits
+## Limitations & Trust Model
+
+**Indirect Mixer Exposure & Alias Elevation:** For addresses with verified 1-3 hop mixer telemetry, user-supplied aliases can permit the LLM corridor to consider Tier 3 if multi-validator consensus establishes direct attribution. Production roadmap isolates Tier 3 strictly to deterministic cluster attribution gateways.
 
 Direct-mode tests exercise the leader path and validator logic with mocks; they do not prove multi-validator agreement on live LLM output — the
 live resolution runs are the integration evidence. Demo feeds are fixtures, not real regulator data. Testnet only; not legal advice.
